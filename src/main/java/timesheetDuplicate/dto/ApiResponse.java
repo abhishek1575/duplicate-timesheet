@@ -1,13 +1,44 @@
 package timesheetDuplicate.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import org.springframework.http.HttpStatus;
+import java.time.LocalDateTime;
 
 @Data
-@AllArgsConstructor
+@Builder
 @NoArgsConstructor
-public class ApiResponse {
-    private String message;
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private LocalDateTime timestamp;
+    private int status;
+    private HttpStatus errorCode;
     private boolean success;
+    private String message;
+    private T data;
+
+    public ApiResponse(String passwordChangedSuccessfully, boolean b) {
+    }
+
+
+    public static <T> ApiResponse<T> success(String message, T data) {
+        return ApiResponse.<T>builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.OK.value())
+                .errorCode(HttpStatus.OK)
+                .success(true)
+                .message(message)
+                .data(data)
+                .build();
+    }
+
+    public static <T> ApiResponse<T> error(String message, HttpStatus status) {
+        return ApiResponse.<T>builder()
+                .timestamp(LocalDateTime.now())
+                .status(status.value())
+                .errorCode(status)
+                .success(false)
+                .message(message)
+                .data(null)
+                .build();
+    }
 }

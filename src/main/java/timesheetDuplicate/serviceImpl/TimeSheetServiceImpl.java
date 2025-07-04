@@ -1,0 +1,143 @@
+package timesheetDuplicate.serviceImpl;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import timesheetDuplicate.dto.TimeSheetDto;
+import timesheetDuplicate.entity.SheetStatus;
+import timesheetDuplicate.entity.TimeSheet;
+import timesheetDuplicate.entity.User;
+import timesheetDuplicate.repository.TimeSheetRepository;
+import timesheetDuplicate.repository.UserRepository;
+import timesheetDuplicate.service.TimeSheetService;
+import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class TimeSheetServiceImpl implements TimeSheetService {
+
+    private final TimeSheetRepository timeSheetRepo;
+    private final UserRepository userRepo;
+
+    private User getLoggedInUser() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    private TimeSheetDto toDto(TimeSheet ts) {
+        return TimeSheetDto.builder()
+                .id(ts.getId())
+                .taskName(ts.getTaskName())
+                .startDate(ts.getStartDate())
+                .endDate(ts.getEndDate())
+                .effort(ts.getEffort())
+                .project(ts.getProject())
+                .status(ts.getStatus())
+                .userId(ts.getUser().getId())
+                .userName(ts.getUser().getName())
+                .approverId(ts.getApprover() != null ? ts.getApprover().getId() : null)
+                .approverName(ts.getApprover() != null ? ts.getApprover().getName() : null)
+                .submittedDate(ts.getSubmittedDate())
+                .approvedDate(ts.getApprovedDate())
+                .comments(ts.getComments())
+                .build();
+    }
+
+    @Override
+    public TimeSheetDto createSheet(TimeSheetDto dto) {
+        User user = getLoggedInUser();
+        TimeSheet ts = TimeSheet.builder()
+                .taskName(dto.getTaskName())
+                .startDate(dto.getStartDate())
+                .endDate(dto.getEndDate())
+                .effort(dto.getEffort())
+                .project(dto.getProject())
+                .status(SheetStatus.DRAFT)
+                .user(user)
+                .build();
+        return toDto(timeSheetRepo.save(ts));
+    }
+
+    @Override
+    public TimeSheetDto updateSheet(Long id, TimeSheetDto dto) {
+        TimeSheet ts = timeSheetRepo.findById(id).orElseThrow(() -> new RuntimeException("Sheet not found"));
+        if (ts.getStatus() != SheetStatus.DRAFT && ts.getStatus() != SheetStatus.REVISED) {
+            throw new RuntimeException("Cannot update submitted/approved sheet");
+        }
+        ts.setTaskName(dto.getTaskName());
+        ts.setStartDate(dto.getStartDate());
+        ts.setEndDate(dto.getEndDate());
+        ts.setEffort(dto.getEffort());
+        ts.setProject(dto.getProject());
+        return toDto(timeSheetRepo.save(ts));
+    }
+
+    @Override
+    public TimeSheetDto submitSheet(Long id) {
+        TimeSheet ts = timeSheetRepo.findById(id).orElseThrow(() -> new RuntimeException("Sheet not found"));
+        User user = getLoggedInUser();
+        ts.setStatus(SheetStatus.PENDING);
+        ts.setSubmittedDate(new Date());
+        ts.setApprover(user.getManager());
+        return toDto(timeSheetRepo.save(ts));
+    }
+
+    @Override
+    public TimeSheetDto approveSheet(Long id) {
+        TimeSheet ts = timeSheetRepo.findById(id).orElseThrow(() -> new RuntimeException("Sheet not found"));
+        ts.setStatus(SheetStatus.APPROVED);
+        ts.setApprovedDate(new Date());
+        return toDto(timeSheetRepo.save(ts));
+    }
+
+    @Override
+    public TimeSheetDto rejectSheet(Long id, String comments) {
+        TimeSheet ts = timeSheetRepo.findById(id).orElseThrow(() -> new RuntimeException("Sheet not found"));
+        ts.setStatus(SheetStatus.REJECTED);
+        ts.setComments(comments);
+        return toDto(timeSheetRepo.save(ts));
+    }
+
+    @Override
+    public TimeSheetDto resubmitSheet(Long id) {
+        TimeSheet ts = timeSheetRepo.findById(id).orElseThrow(() -> new RuntimeException("Sheet not found"));
+        ts.setStatus(SheetStatus.REVISED);
+        return toDto(timeSheetRepo.save(ts));
+    }
+
+    @Override
+    public List<TimeSheetDto> getMySheets() {
+        User user = getLoggedInUser();
+        return timeSheetRepo.findByUserId(user.getId()).stream().map(this::toDto).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<TimeSheetDto> getPendingSheets() {
+        User manager = getLoggedInUser();
+        return timeSheetRepo.findByUserManagerIdAndStatus(manager.getId(), SheetStatus.PENDING)
+                .stream().map(this::toDto).collect(Collectors.toList());
+    }
+
+    @Override
+    public TimeSheetDto getSheetById(Long id) {
+        return toDto(timeSheetRepo.findById(id).orElseThrow(() -> new RuntimeException("Sheet not found")));
+    }
+
+    @Override
+    public List<TimeSheetDto> getAllSheets() {
+        return timeSheetRepo.findAll().stream().map(this::toDto).collect(Collectors.toList());
+    }
+
+
+    @Override
+    public List<TimeSheetDto> getAllDraftSheetByUserID() {
+        User user = getLoggedInUser();  // You already have this method
+        return timeSheetRepo.findByUserIdAndStatus(user.getId(), SheetStatus.DRAFT)
+                .stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+
+}

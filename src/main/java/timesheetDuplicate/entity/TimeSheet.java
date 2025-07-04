@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -26,13 +27,19 @@ public class TimeSheet {
     @NotBlank
     private String taskName;
 
-    @NotNull
     @FutureOrPresent(message = "Start date must be today or in the future")
-    private Date startDate;
+    private LocalDate startDate;
 
-    @NotNull
     @FutureOrPresent(message = "End date must be today or in the future")
-    private Date endDate;
+    private LocalDate endDate;
+
+//    @NotNull
+//    @FutureOrPresent(message = "Start date must be today or in the future")
+//    private Date startDate;
+//
+//    @NotNull
+//    @FutureOrPresent(message = "End date must be today or in the future")
+//    private Date endDate;
 
     @Min(0)
     @Max(24)

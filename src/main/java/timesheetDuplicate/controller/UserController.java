@@ -13,7 +13,7 @@ import timesheetDuplicate.repository.UserRepository;
 import java.util.List;
 
 @RestController
-@RequestMapping("/user")
+@RequestMapping("/users")
 public class UserController {
 
     @Autowired
@@ -22,6 +22,7 @@ public class UserController {
     @Autowired
     private UserMapper userMapper;
 
+    //403 error
     @GetMapping("/all")
     public ResponseEntity<List<UserDto>> getAllUsers() {
         List<User> users = userRepository.findAll();
@@ -29,6 +30,7 @@ public class UserController {
         return ResponseEntity.ok(dtos);
     }
 
+    //403
     @GetMapping("/{id}")
     public ResponseEntity<UserDto> getUserById(@PathVariable Long id) {
         User user = userRepository.findById(id)

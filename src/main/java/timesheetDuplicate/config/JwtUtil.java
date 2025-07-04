@@ -18,7 +18,7 @@ public class JwtUtil {
 
     private final Key secretKey = Keys.secretKeyFor(SignatureAlgorithm.HS256);
 
-    private static final long JWT_TOKEN_VALIDITY = 5 * 60 * 60; // 5 hours in seconds
+    private static final long JWT_TOKEN_VALIDITY = 2 * 60 * 60; // 2 hours in seconds
 
     public String generateToken(String email, timesheetDuplicate.entity.Role role) {
         Map<String, Object> claims = new HashMap<>();
