@@ -20,8 +20,6 @@ public class TimeSheetDto {
     private LocalDate startDate;
     @FutureOrPresent(message = "End date must be today or in the future")
     private LocalDate endDate;
-//    private Date startDate;
-//    private Date endDate;
     private Double effort;
     private String project;
     private SheetStatus status;

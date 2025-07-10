@@ -33,14 +33,6 @@ public class TimeSheet {
     @FutureOrPresent(message = "End date must be today or in the future")
     private LocalDate endDate;
 
-//    @NotNull
-//    @FutureOrPresent(message = "Start date must be today or in the future")
-//    private Date startDate;
-//
-//    @NotNull
-//    @FutureOrPresent(message = "End date must be today or in the future")
-//    private Date endDate;
-
     @Min(0)
     @Max(24)
     private Double effort; // Hours per day

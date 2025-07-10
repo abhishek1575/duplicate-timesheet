@@ -8,9 +8,12 @@ import timesheetDuplicate.entity.Role;
 import timesheetDuplicate.entity.User;
 import timesheetDuplicate.entity.UserMapper;
 import timesheetDuplicate.repository.UserRepository;
+import timesheetDuplicate.service.UserService;
 
 
+import javax.swing.text.html.Option;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/users")
@@ -22,7 +25,10 @@ public class UserController {
     @Autowired
     private UserMapper userMapper;
 
-    //403 error
+    @Autowired
+    private UserService userService;
+
+
     @GetMapping("/all")
     public ResponseEntity<List<UserDto>> getAllUsers() {
         List<User> users = userRepository.findAll();
@@ -30,7 +36,7 @@ public class UserController {
         return ResponseEntity.ok(dtos);
     }
 
-    //403
+
     @GetMapping("/{id}")
     public ResponseEntity<UserDto> getUserById(@PathVariable Long id) {
         User user = userRepository.findById(id)
@@ -51,6 +57,13 @@ public class UserController {
         List<UserDto> managerDtos = managers.stream().map(userMapper::toDto).toList();
         return ResponseEntity.ok(managerDtos);
     }
+    
+    @GetMapping("/admin")
+    public ResponseEntity<List<UserDto>> getAllAdmin(){
+        List<User> admin = userRepository.findByRole(Role.ADMIN);
+        List<UserDto> adminDtos = admin.stream().map(userMapper::toDto).toList();
+        return ResponseEntity.ok(adminDtos);
+    }
 
     @PutMapping("/assignManager")
     public ResponseEntity<?> assignManager(@RequestParam Long userId, @RequestParam Long managerId) {
@@ -61,6 +74,13 @@ public class UserController {
         user.setManager(manager);
         userRepository.save(user);
         return ResponseEntity.ok("Manager assigned successfully");
+    }
+
+
+    @PutMapping("update/{id}")
+    public ResponseEntity<String> updateUser(@PathVariable Long id, @RequestBody UserDto userDto) {
+        userService.updateUser(id, userDto);
+        return ResponseEntity.ok("User updated successfully.");
     }
 
 

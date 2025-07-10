@@ -4,14 +4,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import timesheetDuplicate.dto.TimeSheetDto;
-import timesheetDuplicate.entity.SheetStatus;
-import timesheetDuplicate.entity.TimeSheet;
-import timesheetDuplicate.entity.User;
+import timesheetDuplicate.dto.UserDto;
+import timesheetDuplicate.entity.*;
 import timesheetDuplicate.repository.TimeSheetRepository;
 import timesheetDuplicate.repository.UserRepository;
 import timesheetDuplicate.service.TimeSheetService;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -20,6 +21,7 @@ public class TimeSheetServiceImpl implements TimeSheetService {
 
     private final TimeSheetRepository timeSheetRepo;
     private final UserRepository userRepo;
+    private final UserMapper userMapper;
 
     private User getLoggedInUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -139,5 +141,38 @@ public class TimeSheetServiceImpl implements TimeSheetService {
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public Map<UserDto, List<TimeSheetDto>> getTeamTimesheets() {
+        User loggedInUser = getLoggedInUser();
+        Role role = loggedInUser.getRole();
+        Map<UserDto, List<TimeSheetDto>> result = new HashMap<>();
+
+        if (role == Role.ADMIN) {
+            List<User> allUsers = userRepo.findAll();
+            for (User user : allUsers) {
+                List<TimeSheetDto> sheets = timeSheetRepo.findByUserId(user.getId())
+                        .stream()
+                        .map(this::toDto)
+                        .collect(Collectors.toList());
+                result.put(userMapper.toDto(user), sheets);  // ✅ Correct usage
+            }
+        } else if (role == Role.MANAGER) {
+            List<User> teamMembers = userRepo.findByManagerId(loggedInUser.getId());
+            for (User user : teamMembers) {
+                List<TimeSheetDto> sheets = timeSheetRepo.findByUserId(user.getId())
+                        .stream()
+                        .map(this::toDto)
+                        .collect(Collectors.toList());
+                result.put(userMapper.toDto(user), sheets);  // ✅ Correct usage
+            }
+        } else {
+            throw new RuntimeException("Access Denied: Only Admin or Manager can access this.");
+        }
+
+        return result;
+    }
+
+
 
 }

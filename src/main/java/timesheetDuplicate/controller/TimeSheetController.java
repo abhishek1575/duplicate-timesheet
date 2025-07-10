@@ -1,13 +1,18 @@
 package timesheetDuplicate.controller;
 
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import timesheetDuplicate.dto.TimeSheetDto;
+import timesheetDuplicate.dto.UserDto;
+import timesheetDuplicate.entity.Role;
 import timesheetDuplicate.service.TimeSheetService;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/sheets")
@@ -70,5 +75,11 @@ public class TimeSheetController {
     public ResponseEntity<List<TimeSheetDto>> getAllDraftSheets() {
         return ResponseEntity.ok(sheetService.getAllDraftSheetByUserID());
     }
+
+    @GetMapping("/team-timesheets")
+    public ResponseEntity<Map<UserDto, List<TimeSheetDto>>> getTeamTimesheets() {
+        return ResponseEntity.ok(sheetService.getTeamTimesheets());
+    }
+
 
 }

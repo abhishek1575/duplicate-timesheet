@@ -13,7 +13,6 @@ public class UserMapper {
         if (user == null) {
             return null;
         }
-
         UserDto dto = new UserDto();
         dto.setId(user.getId());
         dto.setName(user.getName());
@@ -33,7 +32,6 @@ public class UserMapper {
         if (dto == null) {
             return null;
         }
-
         User user = new User();
         user.setId(dto.getId());
         user.setName(dto.getName());
