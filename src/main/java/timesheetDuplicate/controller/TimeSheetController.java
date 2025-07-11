@@ -37,9 +37,15 @@ public class TimeSheetController {
     }
 
     @PutMapping("/{id}/approve")
-    public ResponseEntity<TimeSheetDto> approve(@PathVariable Long id) {
-        return ResponseEntity.ok(sheetService.approveSheet(id));
+    public ResponseEntity<?> approve(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(sheetService.approveSheet(id));
+        } catch (Exception e) {
+            e.printStackTrace();  // Force print full stacktrace in console
+            throw e;  // Rethrow to your global handler
+        }
     }
+
 
     @PutMapping("/{id}/reject")
     public ResponseEntity<TimeSheetDto> reject(@PathVariable Long id, @RequestParam String comment) {
@@ -74,6 +80,11 @@ public class TimeSheetController {
     @GetMapping("/draft")
     public ResponseEntity<List<TimeSheetDto>> getAllDraftSheets() {
         return ResponseEntity.ok(sheetService.getAllDraftSheetByUserID());
+    }
+
+    @GetMapping("/rejected")
+    public ResponseEntity<List<TimeSheetDto>> getAllRejectSheet(){
+        return ResponseEntity.ok(sheetService.getAllRejectSheetByUserId());
     }
 
     @GetMapping("/team-timesheets")

@@ -1,5 +1,6 @@
 package timesheetDuplicate.serviceImpl;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -62,6 +63,7 @@ public class TimeSheetServiceImpl implements TimeSheetService {
         return toDto(timeSheetRepo.save(ts));
     }
 
+    @Transactional
     @Override
     public TimeSheetDto updateSheet(Long id, TimeSheetDto dto) {
         TimeSheet ts = timeSheetRepo.findById(id).orElseThrow(() -> new RuntimeException("Sheet not found"));
@@ -143,6 +145,16 @@ public class TimeSheetServiceImpl implements TimeSheetService {
     }
 
     @Override
+    public List<TimeSheetDto> getAllRejectSheetByUserId() {
+        User user = getLoggedInUser();
+        return timeSheetRepo.findByUserIdAndStatus(user.getId(), SheetStatus.REJECTED)
+                .stream().map(this::toDto)
+                .collect(Collectors.toList());
+
+    }
+
+
+    @Override
     public Map<UserDto, List<TimeSheetDto>> getTeamTimesheets() {
         User loggedInUser = getLoggedInUser();
         Role role = loggedInUser.getRole();
@@ -172,6 +184,7 @@ public class TimeSheetServiceImpl implements TimeSheetService {
 
         return result;
     }
+
 
 
 

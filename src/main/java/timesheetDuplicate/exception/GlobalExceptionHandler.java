@@ -41,6 +41,19 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(jakarta.validation.ConstraintViolationException.class)
+    public ResponseEntity<?> handleConstraintViolation(jakarta.validation.ConstraintViolationException ex) {
+        String message = ex.getConstraintViolations()
+                .stream()
+                .map(cv -> cv.getPropertyPath() + ": " + cv.getMessage())
+                .collect(Collectors.joining(", "));
+
+        return new ResponseEntity<>(
+                ApiResponse.error(message, HttpStatus.BAD_REQUEST),
+                HttpStatus.BAD_REQUEST
+        );
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleAll(Exception ex) {
         return new ResponseEntity<>(

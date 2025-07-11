@@ -27,10 +27,10 @@ public class TimeSheet {
     @NotBlank
     private String taskName;
 
-    @FutureOrPresent(message = "Start date must be today or in the future")
+//    @FutureOrPresent(message = "Start date must be today or in the future")
     private LocalDate startDate;
 
-    @FutureOrPresent(message = "End date must be today or in the future")
+//    @FutureOrPresent(message = "End date must be today or in the future")
     private LocalDate endDate;
 
     @Min(0)

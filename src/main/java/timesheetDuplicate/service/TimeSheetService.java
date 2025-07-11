@@ -19,6 +19,7 @@ public interface TimeSheetService {
     List<TimeSheetDto> getAllSheets();
     List<TimeSheetDto> getAllDraftSheetByUserID();
     Map<UserDto, List<TimeSheetDto>> getTeamTimesheets();
+    List<TimeSheetDto> getAllRejectSheetByUserId();
 
 
 }
