@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import timesheetDuplicate.dto.EmployeeTimesheetDto;
 import timesheetDuplicate.dto.TimeSheetDto;
 import timesheetDuplicate.dto.UserDto;
 import timesheetDuplicate.entity.*;
@@ -63,30 +64,60 @@ public class TimeSheetServiceImpl implements TimeSheetService {
         return toDto(timeSheetRepo.save(ts));
     }
 
+//    @Transactional
+//    @Override
+//    public TimeSheetDto updateSheet(Long id, TimeSheetDto dto) {
+//        TimeSheet ts = timeSheetRepo.findById(id).orElseThrow(() -> new RuntimeException("Sheet not found"));
+//        if (ts.getStatus() != SheetStatus.DRAFT && ts.getStatus() != SheetStatus.REVISED) {
+//            throw new RuntimeException("Cannot update submitted/approved sheet");
+//        }
+//        ts.setTaskName(dto.getTaskName());
+//        ts.setStartDate(dto.getStartDate());
+//        ts.setEndDate(dto.getEndDate());
+//        ts.setEffort(dto.getEffort());
+//        ts.setProject(dto.getProject());
+//        return toDto(timeSheetRepo.save(ts));
+//    }
+
     @Transactional
     @Override
     public TimeSheetDto updateSheet(Long id, TimeSheetDto dto) {
-        TimeSheet ts = timeSheetRepo.findById(id).orElseThrow(() -> new RuntimeException("Sheet not found"));
-        if (ts.getStatus() != SheetStatus.DRAFT && ts.getStatus() != SheetStatus.REVISED) {
+        TimeSheet ts = timeSheetRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Sheet not found"));
+
+        if (ts.getStatus() == SheetStatus.PENDING || ts.getStatus() == SheetStatus.APPROVED) {
             throw new RuntimeException("Cannot update submitted/approved sheet");
         }
+
         ts.setTaskName(dto.getTaskName());
         ts.setStartDate(dto.getStartDate());
         ts.setEndDate(dto.getEndDate());
         ts.setEffort(dto.getEffort());
         ts.setProject(dto.getProject());
+
         return toDto(timeSheetRepo.save(ts));
     }
 
+
+
     @Override
+    @Transactional
     public TimeSheetDto submitSheet(Long id) {
-        TimeSheet ts = timeSheetRepo.findById(id).orElseThrow(() -> new RuntimeException("Sheet not found"));
+        TimeSheet ts = timeSheetRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Sheet not found"));
+
+        if (ts.getStatus() != SheetStatus.DRAFT && ts.getStatus() != SheetStatus.REVISED) {
+            throw new RuntimeException("Only draft or revised sheets can be submitted");
+        }
+
         User user = getLoggedInUser();
         ts.setStatus(SheetStatus.PENDING);
         ts.setSubmittedDate(new Date());
         ts.setApprover(user.getManager());
+
         return toDto(timeSheetRepo.save(ts));
     }
+
 
     @Override
     public TimeSheetDto approveSheet(Long id) {
@@ -185,6 +216,25 @@ public class TimeSheetServiceImpl implements TimeSheetService {
         return result;
     }
 
+    @Override
+    public List<EmployeeTimesheetDto> getAllEmployeesWithTimesheets() {
+        List<User> employees = userRepo.findAll();
+
+        return employees.stream()
+                .filter(user -> user.getRole().name().equalsIgnoreCase("EMPLOYEE"))
+                .map(user -> {
+                    List<TimeSheetDto> timesheetDtos = user.getTimesheets() != null
+                            ? user.getTimesheets().stream().map(this::toDto).toList()
+                            : List.of();
+                    return EmployeeTimesheetDto.builder()
+                            .employeeId(user.getId())
+                            .employeeName(user.getName())
+                            .email(user.getEmail())
+                            .timesheets(timesheetDtos)
+                            .build();
+                })
+                .toList();
+    }
 
 
 

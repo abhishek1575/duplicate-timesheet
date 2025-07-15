@@ -42,4 +42,7 @@ public class User {
 
     @OneToMany(mappedBy = "manager", cascade = CascadeType.ALL)
     private List<User> teamMembers = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<TimeSheet> timesheets = new ArrayList<>();
 }

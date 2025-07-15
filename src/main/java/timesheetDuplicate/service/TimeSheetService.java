@@ -1,5 +1,6 @@
 package timesheetDuplicate.service;
 
+import timesheetDuplicate.dto.EmployeeTimesheetDto;
 import timesheetDuplicate.dto.TimeSheetDto;
 import timesheetDuplicate.dto.UserDto;
 
@@ -20,6 +21,8 @@ public interface TimeSheetService {
     List<TimeSheetDto> getAllDraftSheetByUserID();
     Map<UserDto, List<TimeSheetDto>> getTeamTimesheets();
     List<TimeSheetDto> getAllRejectSheetByUserId();
+    List<EmployeeTimesheetDto> getAllEmployeesWithTimesheets();
+
 
 
 }
