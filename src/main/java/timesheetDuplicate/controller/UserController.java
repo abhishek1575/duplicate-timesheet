@@ -2,8 +2,10 @@ package timesheetDuplicate.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import timesheetDuplicate.dto.UserDto;
+import timesheetDuplicate.dto.UserRoleInfoDto;
 import timesheetDuplicate.entity.Role;
 import timesheetDuplicate.entity.User;
 import timesheetDuplicate.entity.UserMapper;
@@ -81,6 +83,18 @@ public class UserController {
     public ResponseEntity<String> updateUser(@PathVariable Long id, @RequestBody UserDto userDto) {
         userService.updateUser(id, userDto);
         return ResponseEntity.ok("User updated successfully.");
+    }
+
+    @GetMapping("/privileged")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<List<UserRoleInfoDto>> getPrivilegedUsers() {
+        return ResponseEntity.ok(userService.getPrivilegedUsers());
+    }
+
+    @GetMapping("/employees")
+    public ResponseEntity<List<UserDto>> getAllEmployees() {
+        List<UserDto> employees = userService.getUsersByRole(Role.EMPLOYEE);
+        return ResponseEntity.ok(employees);
     }
 
 

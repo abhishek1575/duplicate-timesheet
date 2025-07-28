@@ -4,7 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import timesheetDuplicate.entity.Role;
 
 import java.util.List;
 
@@ -12,13 +11,11 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UserDto {
+public class ProjectDto {
     private Long id;
     private String name;
-    private String email;
-    private Role role;
     private Long managerId;
     private String managerName;
-    private List<Long> projectIds;
-    private List<String> projectNames;
+    private List<Long> teamMemberIds;
+    private List<String> teamMemberNames;
 }

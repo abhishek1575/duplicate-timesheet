@@ -4,16 +4,15 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.List;
+import timesheetDuplicate.entity.Role;
 
 @Data
-@Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class EmployeeTimesheetDto {
-    private Long employeeId;
-    private String employeeName;
+@Builder
+public class UserRoleInfoDto {
+    private Long id;
+    private String name;
     private String email;
-    private List<TimeSheetDto> timesheets;
+    private Role role;
 }

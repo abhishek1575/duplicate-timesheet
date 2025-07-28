@@ -15,6 +15,8 @@ import timesheetDuplicate.dto.*;
 import timesheetDuplicate.entity.AuthRequest;
 import timesheetDuplicate.entity.User;
 import timesheetDuplicate.repository.UserRepository;
+
+import java.util.Collections;
 import java.util.Optional;
 
 @RestController
@@ -126,7 +128,8 @@ public class AuthController {
                 User user = userInfo.get();
                 user.setPassword(passwordEncoder.encode(dto.getPassword()));
                 userRepository.save(user);
-                return ResponseEntity.ok("Password changed successfully");
+                return ResponseEntity.ok(Collections.singletonMap("message", "Password changed successfully"));
+
             } catch (Exception e) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                         .body("Unexpected error");
@@ -136,29 +139,31 @@ public class AuthController {
         }
     }
 
+
     @PostMapping("/changePassword")
-    public ResponseEntity<?> changePassword(@RequestBody PasswordChangeDTO passwordChangeDTO){
+    public ResponseEntity<ApiResponse<?>> changePassword(@RequestBody PasswordChangeDTO passwordChangeDTO) {
         Optional<User> userInfo = userRepository.findById(passwordChangeDTO.getId());
 
-        if (userInfo.isPresent()){
+        if (userInfo.isPresent()) {
             User user = userInfo.get();
-            try{
-                if(passwordEncoder.matches(passwordChangeDTO.getOldPassword(),user.getPassword())){
+            try {
+                if (passwordEncoder.matches(passwordChangeDTO.getOldPassword(), user.getPassword())) {
                     user.setPassword(passwordEncoder.encode(passwordChangeDTO.getNewPassword()));
                     userRepository.save(user);
-                    return ResponseEntity.ok(new ApiResponse("Password changed successfully", true));
-                }else {
+                    return ResponseEntity.ok(ApiResponse.success("Password changed successfully", null));
+                } else {
                     return ResponseEntity.status(HttpStatus.CONFLICT)
-                            .body("Old Password is Wrong");
+                            .body(ApiResponse.error("Old password is incorrect", HttpStatus.CONFLICT));
                 }
             } catch (Exception e) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body("Unexpected Error");
+                        .body(ApiResponse.error("Unexpected error occurred", HttpStatus.INTERNAL_SERVER_ERROR));
             }
-        }else {
+        } else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("User Not Found");
+                    .body(ApiResponse.error("User not found", HttpStatus.NOT_FOUND));
         }
     }
+
 }
 

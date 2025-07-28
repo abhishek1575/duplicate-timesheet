@@ -15,9 +15,10 @@ import java.util.List;
 @Data
 @Table(name = "user", uniqueConstraints = @UniqueConstraint(columnNames = "email"))
 @NoArgsConstructor
-@Builder
 @AllArgsConstructor
+@Builder
 public class User {
+
     @Id
     @Column(name = "user_id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -26,23 +27,29 @@ public class User {
     @NotNull
     private String name;
 
-    @Column(nullable = false, columnDefinition = "VARCHAR(255) CHECK (email REGEXP '^[\\\\w-\\\\.]+@cstech\\\\.ai$')")
+    @Column(nullable = false, columnDefinition = "VARCHAR(255) CHECK (email REGEXP '^[\\w-\\.]+@cstech\\.ai$')")
     private String email;
 
     @NotNull
     private String password;
 
-    @NotNull(message="role is required")
+    @NotNull(message = "role is required")
     @Enumerated(EnumType.STRING)
     private Role role;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "manager_id")
-    private User manager; // Reference to the user's manager
+    private User manager;
 
     @OneToMany(mappedBy = "manager", cascade = CascadeType.ALL)
     private List<User> teamMembers = new ArrayList<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TimeSheet> timesheets = new ArrayList<>();
+
+    @ManyToMany(mappedBy = "teamMembers")
+    private List<Project> projects = new ArrayList<>();
+
+    @OneToMany(mappedBy = "manager")
+    private List<Project> managedProjects = new ArrayList<>();
 }

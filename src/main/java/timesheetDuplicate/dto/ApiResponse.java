@@ -16,9 +16,14 @@ public class ApiResponse<T> {
     private String message;
     private T data;
 
-    public ApiResponse(String passwordChangedSuccessfully, boolean b) {
+    public ApiResponse(String message, boolean success) {
+        this.timestamp = LocalDateTime.now();
+        this.status = success ? HttpStatus.OK.value() : HttpStatus.BAD_REQUEST.value();
+        this.errorCode = success ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        this.success = success;
+        this.message = message;
+        this.data = null;
     }
-
 
     public static <T> ApiResponse<T> success(String message, T data) {
         return ApiResponse.<T>builder()

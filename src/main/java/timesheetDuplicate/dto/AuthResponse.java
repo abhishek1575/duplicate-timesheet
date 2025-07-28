@@ -15,7 +15,5 @@ public class AuthResponse {
         this.email = email;
         this.role = role;
         this.jwt = jwt;
-
     }
 }
-
