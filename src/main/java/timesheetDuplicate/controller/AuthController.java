@@ -3,6 +3,7 @@ package timesheetDuplicate.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import timesheetDuplicate.config.JwtUtil;
 import timesheetDuplicate.dto.*;
 import timesheetDuplicate.entity.AuthRequest;
+import timesheetDuplicate.entity.Role;
 import timesheetDuplicate.entity.User;
 import timesheetDuplicate.repository.UserRepository;
 
@@ -98,10 +100,37 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterDto dto) {
+//    @PostMapping("/register")
+//    public ResponseEntity<?> register(@RequestBody RegisterDto dto) {
+//        if (userRepository.existsByEmail(dto.getEmail())) {
+//            return ResponseEntity.status(HttpStatus.CONFLICT).body("Email already exists");
+//        }
+//
+//        User user = new User();
+//        user.setName(dto.getName());
+//        user.setEmail(dto.getEmail());
+//        user.setPassword(passwordEncoder.encode(dto.getPassword()));
+//        user.setRole(dto.getRole());
+//
+//        // Set manager if provided
+//        if (dto.getManagerId() != null) {
+//            user.setManager(userRepository.findById(dto.getManagerId()).orElse(null));
+//        }
+//
+//        userRepository.save(user);
+//        return ResponseEntity.ok("User registered successfully");
+//    }
+
+    @PostMapping("/public/register")
+    public ResponseEntity<?> publicRegister(@RequestBody RegisterDto dto) {
+        if (dto.getRole() == Role.EMPLOYEE) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("EMPLOYEE registration is not allowed here.");
+        }
+
         if (userRepository.existsByEmail(dto.getEmail())) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("Email already exists");
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("Email already exists");
         }
 
         User user = new User();
@@ -110,14 +139,43 @@ public class AuthController {
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
         user.setRole(dto.getRole());
 
-        // Set manager if provided
-        if (dto.getManagerId() != null) {
-            user.setManager(userRepository.findById(dto.getManagerId()).orElse(null));
-        }
-
         userRepository.save(user);
         return ResponseEntity.ok("User registered successfully");
     }
+
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('MANAGER')")
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody RegisterDto dto, Authentication authentication) {
+        User currentUser = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (dto.getRole() != Role.EMPLOYEE) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Only EMPLOYEE registration is allowed here.");
+        }
+
+        if (userRepository.existsByEmail(dto.getEmail())) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("Email already exists");
+        }
+
+        User newUser = new User();
+        newUser.setName(dto.getName());
+        newUser.setEmail(dto.getEmail());
+        newUser.setPassword(passwordEncoder.encode(dto.getPassword()));
+        newUser.setRole(Role.EMPLOYEE);
+
+        // Automatically link manager if role is MANAGER
+        if (currentUser.getRole() == Role.MANAGER) {
+            newUser.setManager(currentUser);
+        } else if (dto.getManagerId() != null) {
+            newUser.setManager(userRepository.findById(dto.getManagerId()).orElse(null));
+        }
+
+        userRepository.save(newUser);
+        return ResponseEntity.ok("Employee registered successfully");
+    }
+
 
 
     @PostMapping("/forgotPassword")

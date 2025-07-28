@@ -71,25 +71,64 @@ public class TimeSheetServiceImpl implements TimeSheetService {
                 .build();
     }
 
+//    @Override
+//    public TimeSheetDto createSheet(TimeSheetDto dto) {
+//        User user = getLoggedInUser();
+//
+//        Project project = projectRepo.findById(dto.getProjectId())
+//                .orElseThrow(() -> new RuntimeException("Project not found with ID: " + dto.getProjectId()));
+//
+//        TimeSheet ts = new TimeSheet();
+//        ts.setTaskName(dto.getTaskName());
+//        ts.setStartDate(dto.getStartDate());
+//        ts.setEndDate(dto.getEndDate());
+//        ts.setEffort(dto.getEffort());
+//        ts.setStatus(SheetStatus.DRAFT);
+//        ts.setUser(user);
+//        ts.setProject(project);
+//        ts.setProjectName(dto.getProjectName());
+//        System.out.println("Saving sheet with project id = " + ts.getProject().getId());
+//        return toDto(timeSheetRepo.save(ts));
+//    }
+
     @Override
     public TimeSheetDto createSheet(TimeSheetDto dto) {
         User user = getLoggedInUser();
 
-        Project project = projectRepo.findById(dto.getProjectId())
-                .orElseThrow(() -> new RuntimeException("Project not found with ID: " + dto.getProjectId()));
+        List<Project> assignedProjects = projectRepo.findByTeamMembersId(user.getId());
 
-        TimeSheet ts = new TimeSheet();
-        ts.setTaskName(dto.getTaskName());
-        ts.setStartDate(dto.getStartDate());
-        ts.setEndDate(dto.getEndDate());
-        ts.setEffort(dto.getEffort());
-        ts.setStatus(SheetStatus.DRAFT);
-        ts.setUser(user);
-        ts.setProject(project);
-        ts.setProjectName(dto.getProjectName());
-        System.out.println("Saving sheet with project id = " + ts.getProject().getId());
+        if (assignedProjects.isEmpty()) {
+            throw new RuntimeException("You are not assigned to any project.");
+        }
+
+        Project project;
+        if (assignedProjects.size() > 1) {
+            if (dto.getProjectId() == null) {
+                throw new RuntimeException("Multiple projects assigned. Please specify projectId.");
+            }
+
+            project = assignedProjects.stream()
+                    .filter(p -> p.getId().equals(dto.getProjectId()))
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException("You are not assigned to the specified project."));
+        } else {
+            project = assignedProjects.get(0); // single project
+        }
+
+        TimeSheet ts = TimeSheet.builder()
+                .taskName(dto.getTaskName())
+                .startDate(dto.getStartDate())
+                .endDate(dto.getEndDate())
+                .effort(dto.getEffort())
+                .status(SheetStatus.DRAFT)
+                .user(user)
+                .project(project)
+                .projectName(project.getName()) // capture name separately
+                .build();
+
         return toDto(timeSheetRepo.save(ts));
     }
+
 
     @Transactional
     @Override
