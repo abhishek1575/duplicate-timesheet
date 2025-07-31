@@ -52,6 +52,7 @@ public class ProjectServiceImpl implements ProjectService {
         return toDto(saved);
     }
 
+
     @Override
     public void assignManager(Long projectId, Long managerId) {
         Project project = projectRepo.findById(projectId)
@@ -66,10 +67,18 @@ public class ProjectServiceImpl implements ProjectService {
             timeSheetService.logAudit(project, actor, oldManager, AuditAction.REMOVED_MANAGER);
         }
 
+        // ✅ Set the manager
         project.setManager(newManager);
+
+        // ✅ Ensure manager is in teamMembers
+        if (!project.getTeamMembers().contains(newManager)) {
+            project.getTeamMembers().add(newManager);
+        }
+
         projectRepo.save(project);
         timeSheetService.logAudit(project, actor, newManager, AuditAction.ASSIGNED_MANAGER);
     }
+
 
     @Override
     public void addUserToProject(Long projectId, Long userId) {
@@ -124,7 +133,7 @@ public class ProjectServiceImpl implements ProjectService {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return userRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
     }
-    // path: timesheetDuplicate.service.impl.ProjectServiceImpl.java
+
     @Override
     public List<ProjectAuditLog> getAllLogs() {
         return auditLogRepo.findAll();

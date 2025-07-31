@@ -22,4 +22,5 @@ public interface TimeSheetService {
     Map<UserDto, List<TimeSheetDto>> getTeamTimesheets();
     List<TimeSheetDto> getAllRejectSheetByUserId();
     List<EmployeeTimesheetDto> getAllEmployeesWithTimesheets();
+    List<TimeSheetDto> getPendingManagerSheets();
 }

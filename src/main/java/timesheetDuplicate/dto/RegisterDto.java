@@ -9,5 +9,6 @@ import timesheetDuplicate.entity.Role;
         private String email;
         private String password;
         private Role role;
-        private Long managerId; // Optional for employee
+        private Long managerId;
+        private Long projectId; // Optional for employee
     }

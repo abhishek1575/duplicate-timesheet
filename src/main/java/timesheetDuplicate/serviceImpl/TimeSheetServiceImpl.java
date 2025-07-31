@@ -15,10 +15,7 @@ import timesheetDuplicate.repository.UserRepository;
 import timesheetDuplicate.service.TimeSheetService;
 
 import java.time.LocalDateTime;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -75,19 +72,38 @@ public class TimeSheetServiceImpl implements TimeSheetService {
 //    public TimeSheetDto createSheet(TimeSheetDto dto) {
 //        User user = getLoggedInUser();
 //
-//        Project project = projectRepo.findById(dto.getProjectId())
-//                .orElseThrow(() -> new RuntimeException("Project not found with ID: " + dto.getProjectId()));
+//        List<Project> assignedProjects = projectRepo.findByTeamMembersId(user.getId());
 //
-//        TimeSheet ts = new TimeSheet();
-//        ts.setTaskName(dto.getTaskName());
-//        ts.setStartDate(dto.getStartDate());
-//        ts.setEndDate(dto.getEndDate());
-//        ts.setEffort(dto.getEffort());
-//        ts.setStatus(SheetStatus.DRAFT);
-//        ts.setUser(user);
-//        ts.setProject(project);
-//        ts.setProjectName(dto.getProjectName());
-//        System.out.println("Saving sheet with project id = " + ts.getProject().getId());
+//        if (assignedProjects.isEmpty()) {
+//            throw new RuntimeException("You are not assigned to any project.");
+//        }
+//
+//        Project project;
+//
+//        if (dto.getProjectId() != null) {
+//            // Use projectId if explicitly passed
+//            project = assignedProjects.stream()
+//                    .filter(p -> p.getId().equals(dto.getProjectId()))
+//                    .findFirst()
+//                    .orElseThrow(() -> new RuntimeException("You are not assigned to the specified project."));
+//        } else if (assignedProjects.size() == 1) {
+//            // Auto-select if only one project
+//            project = assignedProjects.get(0);
+//        } else {
+//            throw new RuntimeException("Multiple projects assigned. Please specify projectId.");
+//        }
+//
+//        TimeSheet ts = TimeSheet.builder()
+//                .taskName(dto.getTaskName())
+//                .startDate(dto.getStartDate())
+//                .endDate(dto.getEndDate())
+//                .effort(dto.getEffort())
+//                .status(SheetStatus.DRAFT)
+//                .user(user)
+//                .project(project)
+//                .projectName(project.getName())
+//                .build();
+//
 //        return toDto(timeSheetRepo.save(ts));
 //    }
 
@@ -95,25 +111,49 @@ public class TimeSheetServiceImpl implements TimeSheetService {
     public TimeSheetDto createSheet(TimeSheetDto dto) {
         User user = getLoggedInUser();
 
-        List<Project> assignedProjects = projectRepo.findByTeamMembersId(user.getId());
+        System.out.println("🔍 Logged-in user ID: " + user.getId());
+        System.out.println("📦 Incoming DTO projectId: " + dto.getProjectId());
+        System.out.println("🧪 Effort type = " + (dto.getEffort() != null ? dto.getEffort().getClass().getSimpleName() : "null"));
+        System.out.println("🧾 Full incoming DTO: " + dto);
+
+
+        // Collect assigned projects
+        Set<Project> assignedProjects = new HashSet<>();
+        List<Project> teamProjects = projectRepo.findByTeamMembersId(user.getId());
+        List<Project> managedProjects = projectRepo.findByManagerId(user.getId());
+
+        System.out.println("👥 Team member projects count: " + teamProjects.size());
+        System.out.println("👨‍💼 Managed projects count: " + managedProjects.size());
+
+        assignedProjects.addAll(teamProjects);
+        assignedProjects.addAll(managedProjects);
 
         if (assignedProjects.isEmpty()) {
+            System.out.println("🚫 No projects assigned to user.");
             throw new RuntimeException("You are not assigned to any project.");
         }
 
-        Project project;
-        if (assignedProjects.size() > 1) {
-            if (dto.getProjectId() == null) {
-                throw new RuntimeException("Multiple projects assigned. Please specify projectId.");
-            }
+        System.out.println("✅ Total assigned projects: " + assignedProjects.size());
+        assignedProjects.forEach(p -> System.out.println("→ Project ID: " + p.getId() + ", Name: " + p.getName()));
 
+        Project project;
+
+        if (dto.getProjectId() != null) {
             project = assignedProjects.stream()
                     .filter(p -> p.getId().equals(dto.getProjectId()))
                     .findFirst()
-                    .orElseThrow(() -> new RuntimeException("You are not assigned to the specified project."));
+                    .orElseThrow(() -> {
+                        System.out.println("❌ Provided projectId not in assigned projects.");
+                        return new RuntimeException("You are not assigned to the specified project.");
+                    });
+        } else if (assignedProjects.size() == 1) {
+            project = assignedProjects.iterator().next();
         } else {
-            project = assignedProjects.get(0); // single project
+            System.out.println("⚠️ Multiple projects assigned but no projectId in DTO.");
+            throw new RuntimeException("Multiple projects assigned. Please specify projectId.");
         }
+
+        System.out.println("📝 Creating timesheet for project: " + project.getId());
 
         TimeSheet ts = TimeSheet.builder()
                 .taskName(dto.getTaskName())
@@ -123,11 +163,14 @@ public class TimeSheetServiceImpl implements TimeSheetService {
                 .status(SheetStatus.DRAFT)
                 .user(user)
                 .project(project)
-                .projectName(project.getName()) // capture name separately
+                .projectName(project.getName())
                 .build();
 
         return toDto(timeSheetRepo.save(ts));
     }
+
+
+
 
 
     @Transactional
@@ -152,24 +195,6 @@ public class TimeSheetServiceImpl implements TimeSheetService {
 
         return toDto(timeSheetRepo.save(ts));
     }
-
-//    @Override
-//    @Transactional
-//    public TimeSheetDto submitSheet(Long id) {
-//        TimeSheet ts = timeSheetRepo.findById(id)
-//                .orElseThrow(() -> new RuntimeException("Sheet not found"));
-//
-//        if (ts.getStatus() != SheetStatus.DRAFT && ts.getStatus() != SheetStatus.REVISED) {
-//            throw new RuntimeException("Only draft or revised sheets can be submitted");
-//        }
-//
-//        User user = getLoggedInUser();
-//        ts.setStatus(SheetStatus.PENDING);
-//        ts.setSubmittedDate(new Date());
-//        ts.setApprover(user.getManager());
-//
-//        return toDto(timeSheetRepo.save(ts));
-//    }
 
     @Override
     @Transactional
@@ -272,37 +297,6 @@ public class TimeSheetServiceImpl implements TimeSheetService {
                 .collect(Collectors.toList());
     }
 
-//    @Override
-//    public Map<UserDto, List<TimeSheetDto>> getTeamTimesheets() {
-//        User loggedInUser = getLoggedInUser();
-//        Role role = loggedInUser.getRole();
-//        Map<UserDto, List<TimeSheetDto>> result = new HashMap<>();
-//
-//        if (role == Role.ADMIN) {
-//            List<User> allUsers = userRepo.findAll();
-//            for (User user : allUsers) {
-//                List<TimeSheetDto> sheets = timeSheetRepo.findByUserId(user.getId())
-//                        .stream()
-//                        .map(this::toDto)
-//                        .collect(Collectors.toList());
-//                result.put(userMapper.toDto(user), sheets);
-//            }
-//        } else if (role == Role.MANAGER) {
-//            List<User> teamMembers = userRepo.findByManagerId(loggedInUser.getId());
-//            for (User user : teamMembers) {
-//                List<TimeSheetDto> sheets = timeSheetRepo.findByUserId(user.getId())
-//                        .stream()
-//                        .map(this::toDto)
-//                        .collect(Collectors.toList());
-//                result.put(userMapper.toDto(user), sheets);
-//            }
-//        } else {
-//            throw new RuntimeException("Access Denied: Only Admin or Manager can access this.");
-//        }
-//
-//        return result;
-//    }
-
     @Override
     public Map<UserDto, List<TimeSheetDto>> getTeamTimesheets() {
         User loggedInUser = getLoggedInUser();
@@ -365,4 +359,14 @@ public class TimeSheetServiceImpl implements TimeSheetService {
                 })
                 .toList();
     }
+
+
+    @Override
+    public List<TimeSheetDto> getPendingManagerSheets() {
+        User admin = getLoggedInUser();
+        List<TimeSheet> sheets = timeSheetRepo.findManagerAndSuperAdminSheets(admin.getId(), SheetStatus.PENDING);
+        return sheets.stream().map(this::toDto).toList();
+    }
+
+
 }

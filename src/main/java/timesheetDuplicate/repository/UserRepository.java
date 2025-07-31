@@ -4,6 +4,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import timesheetDuplicate.entity.Role;
+import timesheetDuplicate.entity.SheetStatus;
+import timesheetDuplicate.entity.TimeSheet;
 import timesheetDuplicate.entity.User;
 
 import java.util.List;
@@ -23,6 +25,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u FROM User u WHERE u.role IN :roles")
     List<User> findByRoles(@Param("roles") List<Role> roles);
     List<User> findByManagerIdAndRole(Long managerId, Role role);
+
 
 
 }

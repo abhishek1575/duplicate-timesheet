@@ -33,7 +33,6 @@ public class TimeSheet {
     private LocalDate endDate;
 
     @Min(0)
-    @Max(24)
     private Double effort;
 
     @Enumerated(EnumType.STRING)
@@ -64,6 +63,7 @@ public class TimeSheet {
     @Column(length = 1000)
     private String comments;
 
-    @Column(name = "project_name", nullable = false)
+    @Column(name = "project_name")
     private String projectName;
+
 }

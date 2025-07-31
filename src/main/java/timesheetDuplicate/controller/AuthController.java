@@ -14,11 +14,14 @@ import org.springframework.web.bind.annotation.*;
 import timesheetDuplicate.config.JwtUtil;
 import timesheetDuplicate.dto.*;
 import timesheetDuplicate.entity.AuthRequest;
+import timesheetDuplicate.entity.Project;
 import timesheetDuplicate.entity.Role;
 import timesheetDuplicate.entity.User;
+import timesheetDuplicate.repository.ProjectRepository;
 import timesheetDuplicate.repository.UserRepository;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -36,6 +39,9 @@ public class AuthController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private ProjectRepository projectRepo;
 
 
     @PostMapping("/login")
@@ -71,13 +77,16 @@ public class AuthController {
             final String jwt = jwtUtil.generateToken(authRequest.getEmail(), user.getRole());
 
             // 5. Build response
+            Long managerId = user.getManager() != null ? user.getManager().getId() : null;
             AuthResponse authResponse = new AuthResponse(
                     user.getId(),
                     user.getName(),
                     user.getEmail(),
                     user.getRole().toString(),
-                    jwt
+                    jwt,
+                    managerId
             );
+
 
             // Debugging: Log successful login
             System.out.println("Successful login for user: " + authRequest.getEmail());
@@ -99,27 +108,6 @@ public class AuthController {
                     .body("An error occurred during login");
         }
     }
-
-//    @PostMapping("/register")
-//    public ResponseEntity<?> register(@RequestBody RegisterDto dto) {
-//        if (userRepository.existsByEmail(dto.getEmail())) {
-//            return ResponseEntity.status(HttpStatus.CONFLICT).body("Email already exists");
-//        }
-//
-//        User user = new User();
-//        user.setName(dto.getName());
-//        user.setEmail(dto.getEmail());
-//        user.setPassword(passwordEncoder.encode(dto.getPassword()));
-//        user.setRole(dto.getRole());
-//
-//        // Set manager if provided
-//        if (dto.getManagerId() != null) {
-//            user.setManager(userRepository.findById(dto.getManagerId()).orElse(null));
-//        }
-//
-//        userRepository.save(user);
-//        return ResponseEntity.ok("User registered successfully");
-//    }
 
     @PostMapping("/public/register")
     public ResponseEntity<?> publicRegister(@RequestBody RegisterDto dto) {
@@ -143,8 +131,41 @@ public class AuthController {
         return ResponseEntity.ok("User registered successfully");
     }
 
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('MANAGER')")
+//    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('MANAGER')")
+//    @PostMapping("/register")
+//    public ResponseEntity<?> register(@RequestBody RegisterDto dto, Authentication authentication) {
+//        User currentUser = userRepository.findByEmail(authentication.getName())
+//                .orElseThrow(() -> new RuntimeException("User not found"));
+//
+//        if (dto.getRole() != Role.EMPLOYEE) {
+//            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+//                    .body("Only EMPLOYEE registration is allowed here.");
+//        }
+//
+//        if (userRepository.existsByEmail(dto.getEmail())) {
+//            return ResponseEntity.status(HttpStatus.CONFLICT)
+//                    .body("Email already exists");
+//        }
+//
+//        User newUser = new User();
+//        newUser.setName(dto.getName());
+//        newUser.setEmail(dto.getEmail());
+//        newUser.setPassword(passwordEncoder.encode(dto.getPassword()));
+//        newUser.setRole(Role.EMPLOYEE);
+//
+//        // Automatically link manager if role is MANAGER
+//        if (currentUser.getRole() == Role.MANAGER) {
+//            newUser.setManager(currentUser);
+//        } else if (dto.getManagerId() != null) {
+//            newUser.setManager(userRepository.findById(dto.getManagerId()).orElse(null));
+//        }
+//
+//        userRepository.save(newUser);
+//        return ResponseEntity.ok("Employee registered successfully");
+//    }
+
     @PostMapping("/register")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('MANAGER')")
     public ResponseEntity<?> register(@RequestBody RegisterDto dto, Authentication authentication) {
         User currentUser = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -159,24 +180,29 @@ public class AuthController {
                     .body("Email already exists");
         }
 
-        User newUser = new User();
-        newUser.setName(dto.getName());
-        newUser.setEmail(dto.getEmail());
-        newUser.setPassword(passwordEncoder.encode(dto.getPassword()));
-        newUser.setRole(Role.EMPLOYEE);
-
-        // Automatically link manager if role is MANAGER
-        if (currentUser.getRole() == Role.MANAGER) {
-            newUser.setManager(currentUser);
-        } else if (dto.getManagerId() != null) {
-            newUser.setManager(userRepository.findById(dto.getManagerId()).orElse(null));
-        }
+        User newUser = User.builder()
+                .name(dto.getName())
+                .email(dto.getEmail())
+                .password(passwordEncoder.encode(dto.getPassword()))
+                .role(Role.EMPLOYEE)
+                .manager(currentUser)
+                .build();
 
         userRepository.save(newUser);
-        return ResponseEntity.ok("Employee registered successfully");
+
+        // ✅ Auto-assign all manager projects to this employee
+        List<Project> managerProjects = projectRepo.findByManagerId(currentUser.getId());
+
+        for (Project project : managerProjects) {
+            if (!project.getTeamMembers().contains(newUser)) {
+                project.getTeamMembers().add(newUser);
+            }
+        }
+
+        projectRepo.saveAll(managerProjects);
+
+        return ResponseEntity.ok("Employee registered and auto-assigned to manager's projects.");
     }
-
-
 
     @PostMapping("/forgotPassword")
     public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordDto dto) {
